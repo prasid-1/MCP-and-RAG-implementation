@@ -24,20 +24,25 @@ prompt = """The provided text is extracted from an image using OCR. The image ha
 ```
 """
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("query_text", type=str, help="The query text.")
-    args = parser.parse_args()
-    # query_text = prompt.join(args.query_text.split("\n"))
-    query_text = prompt + "\n" + " ".join(args.query_text.split("_"))
-    # print(f"Query Text: {query_text}")
-    query_output(query_text)
+def main(argument=None):
+    if argument is None:
+      parser = argparse.ArgumentParser()
+      parser.add_argument("query_text", type=str, help="The query text.")
+      args = parser.parse_args()
+      # query_text = prompt.join(args.query_text.split("\n"))
+      query_text = prompt + "\n" + " ".join(args.query_text.split("_"))
+      # print(f"Query Text: {query_text}")
+      query_output(query_text)
 
+    query_text = prompt + "\n" + " ".join(argument.split("_"))
+    response = query_output(query_text)
+    return response
 
 def query_output(query_text: str):
     model = Ollama(model=getAiModel())
     response_text = model.invoke(query_text)
     print(response_text)
+    return response_text
 
 
 if __name__ == "__main__":

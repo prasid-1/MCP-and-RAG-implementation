@@ -9,6 +9,7 @@ import re
 import json
 from PIL import Image
 import pytesseract
+import aifilter
 
 
 
@@ -66,25 +67,31 @@ def get_json(extracted_text, dir):
     command = ['python', 'OCR/aifilter.py', extracted_text]   
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        # result = subprocess.run(command, capture_output=True, text=True, check=True)
+        result = aifilter.main(extracted_text)
         print("Target script output:")
 
         # print(result.stdout)
 
-        if result.stderr:
-            print("Target script error output:")
-            print(result.stderr)
+        # if result.stderr:
+        #     print("Target script error output:")
+        #     print(result.stderr)
 
         
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing target script: {e}")
-        print(f"Stderr: {e.stderr}")
+    # except subprocess.CalledProcessError as e:
+    #     print(f"Error executing target script: {e}")
+    #     print(f"Stderr: {e.stderr}")
+    except result == None:
+        print("error in try block")
 
-    if result.stdout:
+    # if result.stdout:
+    if result:
         # Process the output to extract JSON
-        json_formatting(result.stdout, dir)
+        # json_formatting(result.stdout, dir)
+        json_formatting(result, dir)
     else:
         print("No output from the target script.")
+
 
 def json_formatting(output, dir):
     cleanOutput = clean__output(output)
