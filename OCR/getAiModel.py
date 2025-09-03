@@ -1,2 +1,3 @@
 def getAiModel():
-    return "deepseek-r1:1.5b"  
+    # return "deepseek-r1:8b"  
+    return "llama3.2:3b"

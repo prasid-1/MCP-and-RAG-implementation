@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -32,8 +35,121 @@ func main() {
 
 	mux.HandleFunc("POST /query", queryHandler)
 
+	mux.HandleFunc("POST /ocr-image", ocrHandler)
+
+	mux.HandleFunc("POST /getFromData", getFromDataHandler)
+
 	fmt.Println("Starting server on :3001")
 	http.ListenAndServe(":3001", mux)
+}
+
+func getFromDataHandler(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	filename := r.FormValue("filename")
+	if filename == "" {
+		http.Error(w, "Filename is required", http.StatusBadRequest)
+		return
+	}
+
+	baseName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	tesseract_name := baseName + "output_tesseract"
+	jsonFileName := tesseract_name + ".json"
+	jsonPath := filepath.Join("./OCR/jsonDataOut", jsonFileName)
+
+	content, err := ioutil.ReadFile(jsonPath)
+	if err != nil {
+		http.Error(w, "JSON file not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Serving JSON file: %s\n", jsonPath)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(content)
+
+}
+
+func ocrHandler(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseMultipartForm(50 << 20); err != nil { // 50 MB limit for form data in memory
+		http.Error(w, "Error parsing multipart form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Error retrieving file from form data", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	uploadDir := "./OCR/images/server"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		http.Error(w, "Error creating upload directory", http.StatusInternalServerError)
+		return
+	}
+
+	filename := filepath.Join(uploadDir, filepath.Base(handler.Filename))
+
+	dst, err := os.Create(filename)
+	if err != nil {
+		http.Error(w, "Error creating file on server", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "Error saving file to server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":  "File uploaded successfully",
+		"filename": filename,
+	})
+
+	cmd := exec.Command("python", "OCR/ocr.py", uploadDir, filepath.Base(handler.Filename))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		//http.Error(w, "Failed to execute Python script: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("Failed to execute Python script: %v\n", err)
+	}
+
+	// go func(uploadDir, filename string) {
+	// 	cmd := exec.Command("python", "OCR/ocr.py", uploadDir, filepath.Base(handler.Filename))
+	// 	cmd.Stdout = os.Stdout
+	// 	cmd.Stderr = os.Stderr
+	// 	if err := cmd.Run(); err != nil {
+	// 		//http.Error(w, "Failed to execute Python script: "+err.Error(), http.StatusInternalServerError)
+	// 		log.Printf("Failed to execute Python script: %v\n", err)
+	// 	}
+	// }(uploadDir, filepath.Base(handler.Filename))
+
 }
 
 func queryHandler(w http.ResponseWriter, r *http.Request) {

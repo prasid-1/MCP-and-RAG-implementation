@@ -10,13 +10,21 @@ import json
 from PIL import Image
 import pytesseract
 import aifilter
+import argparse
 
 
 
 
 def main():
-    image_path = 'OCR/images/'
-    image_name = 'image3.png'  
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dir", nargs="?", default="OCR/images/", help="input directory for images")
+    parser.add_argument("name", nargs="?", default="image3.png", help="input image name")
+
+    args = parser.parse_args()
+
+    image_path = args.dir
+    image_name = args.name
+
     output_path = 'OCR/outputimg/'
 
     combined_in_path = os.path.join(image_path, image_name)
@@ -24,8 +32,8 @@ def main():
 
     extracted_text = run_tesseract_ocr(combined_in_path)
     get_json(extracted_text,image_name.strip(".png")+"output_tesseract.json")
-    extracted_text = run_easy_ocr(combined_in_path)
-    get_json(extracted_text,image_name.strip(".png")+"output_easyOCR.json")
+    # extracted_text = run_easy_ocr(combined_in_path)
+    # get_json(extracted_text,image_name.strip(".png")+"output_easyOCR.json")
 
 def run_tesseract_ocr(image_path):
     extracted = pytesseract.image_to_string(Image.open(image_path))
@@ -64,7 +72,7 @@ def run_easy_ocr(combined_in_path):
 
 def get_json(extracted_text, dir):
 
-    command = ['python', 'OCR/aifilter.py', extracted_text]   
+    #command = ['python', 'OCR/aifilter.py', extracted_text]   
 
     try:
         # result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -81,8 +89,9 @@ def get_json(extracted_text, dir):
     # except subprocess.CalledProcessError as e:
     #     print(f"Error executing target script: {e}")
     #     print(f"Stderr: {e.stderr}")
-    except result == None:
+    except Exception as e:
         print("error in try block")
+        return
 
     # if result.stdout:
     if result:

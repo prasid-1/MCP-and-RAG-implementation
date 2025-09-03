@@ -1,2 +1,2 @@
 def getAiModel():
-    return "llama3.2"  
+    return "deepseek-r1:1.5b" 

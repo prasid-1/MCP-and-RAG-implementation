@@ -5,7 +5,7 @@ from langchain_ollama import OllamaLLM as Ollama
 from getAiModel import getAiModel
 
 
-prompt = """The provided text is extracted from an image using OCR. The image has word for GRE exam preparation. each words has a definition, example, and mnemonic if available. Your job is to keep these information in json format with correct spelling. (output only json format) use format:
+prompt = """The provided text is extracted from an image using OCR. The image has word for GRE exam preparation. each words has a definition, example, and mnemonic if available. Your job is to keep these information in json format with correct spelling. (perform second check before outputting) (strictly no comments, output only json format) use format:
 ```json
 [
   {
